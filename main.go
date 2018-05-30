@@ -111,10 +111,10 @@ func collectOnce(ctx context.Context, client *github.Client, config Config) erro
 	log.Info("collecting")
 
 	var start = time.Now()
-	for _, repo := range config.Repositories {
-		parts := strings.Split(repo, "/")
+	for _, repository := range config.Repositories {
+		parts := strings.Split(repository, "/")
 		if len(parts) < 2 {
-			log.Fatalf("invalid repository: %s", repo)
+			log.Fatalf("invalid repository: %s", repository)
 		}
 		owner, repo := parts[0], parts[1]
 		log.Infof("collecting %s/%s", owner, repo)
@@ -140,7 +140,7 @@ func collectOnce(ctx context.Context, client *github.Client, config Config) erro
 				}
 				for _, asset := range assets {
 					downloadCount.WithLabelValues(
-						repo,
+						repository,
 						release.GetTagName(),
 						asset.GetName(),
 					).Set(float64(asset.GetDownloadCount()))

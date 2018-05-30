@@ -16,26 +16,41 @@ docker run -p 127.0.0.1:9333:9333 caarlos0/github_releases_exporter
 
 ## Configuration
 
-On the prometheus settings, add the domain_expoter prober:
+You can set it up on docker compose like:
 
 ```yaml
-- job_name: releases
-  scrape_interval: 5m
-  metrics_path: /probe
-  relabel_configs:
-    - source_labels: [__address__]
-      target_label: __param_target
-    - source_labels: [__param_target]
-      target_label: repository
-    - target_label: __address__
-      replacement: localhost:9333 # github_releases_exporter address
-  static_configs:
-    - targets:
-      - goreleaser/goreleaser
+version: '3'
+services:
+  releases:
+    image: caarlos0/github_releases_exporter:v1
+    restart: always
+    volumes:
+    - /path/to/releases.yml:/etc/releases.yml:ro
+    command:
+    - '--config.file=/etc/releases.yml'
+    ports:
+    - 127.0.0.1:9333:9333
+    env_file:
+    - .env
 ```
 
-It works more or less like prometheus's
-[blackbox_exporter](https://github.com/prometheus/blackbox_exporter).
+The `releases.yml` file should look like this:
+
+```yaml
+repositories:
+- goreleaser/goreleaser
+- caarlos0/github_releases_exporter
+```
+
+On the prometheus settings, add the releases job like this:
+
+```yaml
+- job_name: 'releases'
+  static_configs:
+  - targets: ['releases:9333']
+```
+
+And you are done!
 
 ## Grafana Dashboard
 
