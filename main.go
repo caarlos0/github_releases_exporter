@@ -94,7 +94,7 @@ var (
 		Name: prometheus.BuildFQName(ns, "asset", "download_count"),
 		Help: "Download count of each asset of a github release",
 	},
-		[]string{"tag", "name"},
+		[]string{"repository", "tag", "name"},
 	)
 )
 
@@ -140,6 +140,7 @@ func collectOnce(ctx context.Context, client *github.Client, config Config) erro
 				}
 				for _, asset := range assets {
 					downloadCount.WithLabelValues(
+						repo,
 						release.GetTagName(),
 						asset.GetName(),
 					).Set(float64(asset.GetDownloadCount()))
