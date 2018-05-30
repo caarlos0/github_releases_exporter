@@ -37,6 +37,14 @@ On the prometheus settings, add the domain_expoter prober:
 It works more or less like prometheus's
 [blackbox_exporter](https://github.com/prometheus/blackbox_exporter).
 
+## Grafana Dashboard
+
+I have a dashvboard like this:
+
+![](https://grafana.com/api/dashboards/6328/images/4048/image)
+
+You can get it from [the grafana website](https://grafana.com/dashboards/6328)
+or just import the dashboard `6328`.
 
 ## Building locally
 
