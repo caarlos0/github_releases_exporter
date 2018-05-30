@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -13,23 +14,40 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
 	"golang.org/x/oauth2"
+	yaml "gopkg.in/yaml.v1"
 )
 
 var (
-	bind    = kingpin.Flag("bind", "addr to bind the server").Short('b').Default(":9333").String()
-	debug   = kingpin.Flag("debug", "show debug logs").Default("false").Bool()
-	token   = kingpin.Flag("github-token", "github token").Envar("GITHUB_TOKEN").String()
-	version = "master"
+	bind       = kingpin.Flag("bind", "addr to bind the server").Short('b').Default(":9333").String()
+	debug      = kingpin.Flag("debug", "show debug logs").Default("false").Bool()
+	token      = kingpin.Flag("github-token", "github token").Envar("GITHUB_TOKEN").String()
+	configFile = kingpin.Flag("config.file", "config file").Default("releases.yml").ExistingFile()
+	interval   = kingpin.Flag("refresh.interval", "time between refreshes with github api").Default("15m").Duration()
+	version    = "master"
 )
+
+type Config struct {
+	Repositories []string `yaml:"repositories"`
+}
 
 func main() {
 	kingpin.Version("github_releases_exporter version " + version)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
+	log.Info("starting github_releases_exporter", version)
 
 	if *debug {
 		_ = log.Base().SetLevel("debug")
 		log.Debug("enabled debug mode")
+	}
+
+	var config Config
+	bts, err := ioutil.ReadFile(*configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := yaml.Unmarshal(bts, &config); err != nil {
+		log.Fatal(err)
 	}
 
 	var ctx = context.Background()
@@ -41,10 +59,11 @@ func main() {
 		))
 	}
 
-	log.Info("starting github_releases_exporter", version)
-
+	go keepCollecting(ctx, client, config)
+	prometheus.MustRegister(scrapeDuration)
+	prometheus.MustRegister(downloadCount)
 	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/probe", probeHandler(client))
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(
 			w, `
@@ -53,7 +72,6 @@ func main() {
 			<body>
 				<h1>GitHub Releases Exporter</h1>
 				<p><a href="/metrics">Metrics</a></p>
-				<p><a href="/probe?target=goreleaser/goreleser">probe goreleaser/goreleaser</a></p>
 			</body>
 			</html>
 			`,
@@ -65,103 +83,74 @@ func main() {
 	}
 }
 
-func probeHandler(client *github.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var params = r.URL.Query()
-		var target = params.Get("target")
-		parts := strings.Split(target, "/")
-		if len(parts) < 2 {
-			http.Error(w, "invalid target: "+target, http.StatusBadRequest)
-			return
-		}
-
-		var registry = prometheus.NewRegistry()
-		registry.MustRegister(newReleaseCollector(client, parts[0], parts[1]))
-		promhttp.HandlerFor(registry, promhttp.HandlerOpts{}).ServeHTTP(w, r)
-	}
-}
-
 const ns = "github_release"
 
-type releaseCollector struct {
-	client         *github.Client
-	scrapeDuration *prometheus.Desc
-	downloadCount  *prometheus.Desc
-	owner          string
-	repo           string
-}
+var (
+	scrapeDuration = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: prometheus.BuildFQName(ns, "", "scrape_duration_seconds"),
+		Help: "Returns how long the probe took to complete in seconds",
+	})
+	downloadCount = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: prometheus.BuildFQName(ns, "asset", "download_count"),
+		Help: "Download count of each asset of a github release",
+	},
+		[]string{"tag", "name"},
+	)
+)
 
-func newReleaseCollector(client *github.Client, owner, repo string) *releaseCollector {
-	return &releaseCollector{
-		client: client,
-		owner:  owner,
-		repo:   repo,
-		scrapeDuration: prometheus.NewDesc(
-			prometheus.BuildFQName(ns, "", "scrape_duration_seconds"),
-			"Returns how long the probe took to complete in seconds",
-			nil,
-			nil,
-		),
-		downloadCount: prometheus.NewDesc(
-			prometheus.BuildFQName(ns, "asset", "download_count"),
-			"Download count of each asset of a github release",
-			[]string{"tag", "name"},
-			nil,
-		),
-	}
-}
-
-// Describe describes all the metrics exported by the github releases exporter.
-func (c *releaseCollector) Describe(ch chan<- *prometheus.Desc) {
-	ch <- c.scrapeDuration
-	ch <- c.downloadCount
-}
-
-// Collect talks to the github api and returns metrics
-func (c *releaseCollector) Collect(ch chan<- prometheus.Metric) {
-	var ctx = context.Background()
-	var start = time.Now()
-
-	var allReleases []*github.RepositoryRelease
-	var opt = &github.ListOptions{PerPage: 100}
+func keepCollecting(ctx context.Context, client *github.Client, config Config) {
 	for {
-		releases, resp, err := c.client.Repositories.ListReleases(ctx, c.owner, c.repo, opt)
-		if err != nil {
-			log.Error(err)
-			return
+		if err := collectOnce(ctx, client, config); err != nil {
+			log.Fatal(err)
 		}
-		allReleases = append(allReleases, releases...)
-		if resp.NextPage == 0 {
-			break
-		}
-		opt.Page = resp.NextPage
+		time.Sleep(*interval)
 	}
-	for _, release := range allReleases {
-		opt = &github.ListOptions{PerPage: 100}
+}
+
+func collectOnce(ctx context.Context, client *github.Client, config Config) error {
+	log.Info("collecting")
+
+	var start = time.Now()
+	for _, repo := range config.Repositories {
+		parts := strings.Split(repo, "/")
+		if len(parts) < 2 {
+			log.Fatalf("invalid repository: %s", repo)
+		}
+		owner, repo := parts[0], parts[1]
+		log.Infof("collecting %s/%s", owner, repo)
+		var allReleases []*github.RepositoryRelease
+		var opt = &github.ListOptions{PerPage: 100}
 		for {
-			assets, resp, err := c.client.Repositories.ListReleaseAssets(ctx, c.owner, c.repo, release.GetID(), opt)
+			releases, resp, err := client.Repositories.ListReleases(ctx, owner, repo, opt)
 			if err != nil {
-				log.Error(err)
-				return
+				return err
 			}
-			for _, asset := range assets {
-				ch <- prometheus.MustNewConstMetric(
-					c.downloadCount,
-					prometheus.CounterValue,
-					float64(asset.GetDownloadCount()),
-					release.GetTagName(),
-					asset.GetName(),
-				)
-			}
+			allReleases = append(allReleases, releases...)
 			if resp.NextPage == 0 {
 				break
 			}
 			opt.Page = resp.NextPage
 		}
+		for _, release := range allReleases {
+			opt = &github.ListOptions{PerPage: 100}
+			for {
+				assets, resp, err := client.Repositories.ListReleaseAssets(ctx, owner, repo, release.GetID(), opt)
+				if err != nil {
+					return err
+				}
+				for _, asset := range assets {
+					downloadCount.WithLabelValues(
+						release.GetTagName(),
+						asset.GetName(),
+					).Set(float64(asset.GetDownloadCount()))
+				}
+				if resp.NextPage == 0 {
+					break
+				}
+				opt.Page = resp.NextPage
+			}
+		}
 	}
-	ch <- prometheus.MustNewConstMetric(
-		c.scrapeDuration,
-		prometheus.GaugeValue,
-		time.Since(start).Seconds(),
-	)
+	scrapeDuration.Set(time.Since(start).Seconds())
+	return nil
 }
