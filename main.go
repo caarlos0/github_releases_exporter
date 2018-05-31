@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/alecthomas/kingpin"
@@ -42,13 +45,15 @@ func main() {
 	}
 
 	var config Config
-	bts, err := ioutil.ReadFile(*configFile)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if err := yaml.Unmarshal(bts, &config); err != nil {
-		log.Fatal(err)
-	}
+	loadConfig(&config)
+	var configCh = make(chan os.Signal, 1)
+	signal.Notify(configCh, syscall.SIGHUP)
+	go func() {
+		for range configCh {
+			log.Info("reloading config...")
+			loadConfig(&config)
+		}
+	}()
 
 	var ctx = context.Background()
 	var client = github.NewClient(nil)
@@ -59,7 +64,7 @@ func main() {
 		))
 	}
 
-	go keepCollecting(ctx, client, config)
+	go keepCollecting(ctx, client, &config)
 	prometheus.MustRegister(scrapeDuration)
 	prometheus.MustRegister(downloadCount)
 	http.Handle("/metrics", promhttp.Handler())
@@ -98,7 +103,7 @@ var (
 	)
 )
 
-func keepCollecting(ctx context.Context, client *github.Client, config Config) {
+func keepCollecting(ctx context.Context, client *github.Client, config *Config) {
 	for {
 		if err := collectOnce(ctx, client, config); err != nil {
 			log.Fatal(err)
@@ -107,8 +112,8 @@ func keepCollecting(ctx context.Context, client *github.Client, config Config) {
 	}
 }
 
-func collectOnce(ctx context.Context, client *github.Client, config Config) error {
-	log.Info("collecting")
+func collectOnce(ctx context.Context, client *github.Client, config *Config) error {
+	log.Info("collecting", config.Repositories)
 
 	var start = time.Now()
 	for _, repository := range config.Repositories {
@@ -154,4 +159,16 @@ func collectOnce(ctx context.Context, client *github.Client, config Config) erro
 	}
 	scrapeDuration.Set(time.Since(start).Seconds())
 	return nil
+}
+
+func loadConfig(config *Config) {
+	bts, err := ioutil.ReadFile(*configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var newConfig Config
+	if err := yaml.Unmarshal(bts, &newConfig); err != nil {
+		log.Fatal(err)
+	}
+	*config = newConfig
 }

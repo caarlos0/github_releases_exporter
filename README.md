@@ -52,6 +52,11 @@ On the prometheus settings, add the releases job like this:
 
 And you are done!
 
+## Configuration Reload
+
+You can reload the configuration at any time by sending a `SIGHUP` to the
+process.
+
 ## Grafana Dashboard
 
 I have a dashvboard like this:
