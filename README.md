@@ -2,6 +2,15 @@
 
 Exports GitHub release metrics to the Prometheus format.
 
+[![Release](https://img.shields.io/github/release/caarlos0/github_releases_exporter.svg?style=flat-square)](https://github.com/caarlos0/github_releases_exporter/releases/latest)
+[![Software License](https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square)](LICENSE.md)
+[![Build Status](https://travis-ci.com/caarlos0/github_releases_exporter.svg?branch=master)](https://travis-ci.com/caarlos0/github_releases_exporter)
+[![Coverage Status](https://img.shields.io/codecov/c/github/caarlos0/github_releases_exporter/master.svg?style=flat-square)](https://codecov.io/gh/caarlos0/github_releases_exporter)
+[![Go Doc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](http://godoc.org/github.com/caarlos0/github_releases_exporter)
+[![Go Report Card](https://goreportcard.com/badge/github.com/caarlos0/github_releases_exporter?style=flat-square)](https://goreportcard.com/report/github.com/caarlos0/github_releases_exporter)
+[![SayThanks.io](https://img.shields.io/badge/SayThanks.io-%E2%98%BC-1EAEDB.svg?style=flat-square)](https://saythanks.io/to/caarlos0)
+[![Powered By: GoReleaser](https://img.shields.io/badge/powered%20by-goreleaser-green.svg?style=flat-square)](https://github.com/goreleaser)
+
 ## Running
 
 ```console
