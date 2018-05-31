@@ -23,7 +23,7 @@ import (
 var (
 	bind       = kingpin.Flag("bind", "addr to bind the server").Short('b').Default(":9333").String()
 	debug      = kingpin.Flag("debug", "show debug logs").Default("false").Bool()
-	token      = kingpin.Flag("github-token", "github token").Envar("GITHUB_TOKEN").String()
+	token      = kingpin.Flag("github.token", "github token").Envar("GITHUB_TOKEN").String()
 	configFile = kingpin.Flag("config.file", "config file").Default("releases.yml").ExistingFile()
 	interval   = kingpin.Flag("refresh.interval", "time between refreshes with github api").Default("15m").Duration()
 	version    = "master"
@@ -113,7 +113,7 @@ func keepCollecting(ctx context.Context, client *github.Client, config *Config) 
 }
 
 func collectOnce(ctx context.Context, client *github.Client, config *Config) error {
-	log.Info("collecting", config.Repositories)
+	log.Infof("collecting %d repositories", len(config.Repositories))
 
 	var start = time.Now()
 	for _, repository := range config.Repositories {
@@ -127,6 +127,9 @@ func collectOnce(ctx context.Context, client *github.Client, config *Config) err
 		var opt = &github.ListOptions{PerPage: 100}
 		for {
 			releases, resp, err := client.Repositories.ListReleases(ctx, owner, repo, opt)
+			if rateLimited(err) {
+				continue
+			}
 			if err != nil {
 				return err
 			}
@@ -140,6 +143,9 @@ func collectOnce(ctx context.Context, client *github.Client, config *Config) err
 			opt = &github.ListOptions{PerPage: 100}
 			for {
 				assets, resp, err := client.Repositories.ListReleaseAssets(ctx, owner, repo, release.GetID(), opt)
+				if rateLimited(err) {
+					continue
+				}
 				if err != nil {
 					return err
 				}
@@ -159,6 +165,29 @@ func collectOnce(ctx context.Context, client *github.Client, config *Config) err
 	}
 	scrapeDuration.Set(time.Since(start).Seconds())
 	return nil
+}
+
+// TODO: maybe keep a global rate limiter?
+func rateLimited(err error) bool {
+	if err == nil {
+		return false
+	}
+	rerr, ok := err.(*github.RateLimitError)
+	if ok {
+		var d = time.Until(rerr.Rate.Reset.Time)
+		log.Warnf("hit rate limit, sleeping for %.0f min", d.Minutes())
+		time.Sleep(d)
+		return true
+	}
+	aerr, ok := err.(*github.AbuseRateLimitError)
+	if ok {
+		var d = aerr.GetRetryAfter()
+		log.Warnf("hit abuse mechanism, sleeping for %.f min", d.Minutes())
+		time.Sleep(d)
+		return true
+	}
+	log.Errorf("unexpected error: %s", err)
+	return false
 }
 
 func loadConfig(config *Config) {
