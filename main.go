@@ -106,7 +106,7 @@ var (
 func keepCollecting(ctx context.Context, client *github.Client, config *Config) {
 	for {
 		if err := collectOnce(ctx, client, config); err != nil {
-			log.Fatal(err)
+			log.Error("failed to collect:", err)
 		}
 		time.Sleep(*interval)
 	}
@@ -117,11 +117,10 @@ func collectOnce(ctx context.Context, client *github.Client, config *Config) err
 
 	var start = time.Now()
 	for _, repository := range config.Repositories {
-		parts := strings.Split(repository, "/")
-		if len(parts) < 2 {
-			log.Fatalf("invalid repository: %s", repository)
+		owner, repo, err := splitRepo(repository)
+		if err != nil {
+			return err
 		}
-		owner, repo := parts[0], parts[1]
 		log.Infof("collecting %s/%s", owner, repo)
 		var allReleases []*github.RepositoryRelease
 		var opt = &github.ListOptions{PerPage: 100}
@@ -186,7 +185,6 @@ func rateLimited(err error) bool {
 		time.Sleep(d)
 		return true
 	}
-	log.Errorf("unexpected error: %s", err)
 	return false
 }
 
@@ -200,4 +198,16 @@ func loadConfig(config *Config) {
 		log.Fatal(err)
 	}
 	*config = newConfig
+}
+
+func splitRepo(repository string) (owner string, repo string, err error) {
+	parts := strings.Split(repository, "/")
+	if len(parts) < 2 {
+		return owner, repo, fmt.Errorf("invalid repository: %s. should be in the owner/repo format", repository)
+	}
+	owner, repo = parts[0], parts[1]
+	if owner == "" || repo == "" {
+		return owner, repo, fmt.Errorf("invalid repository: %s. should be in the owner/repo format", repository)
+	}
+	return
 }
