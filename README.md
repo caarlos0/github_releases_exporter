@@ -70,7 +70,7 @@ process.
 
 I have a dashvboard like this:
 
-![](https://grafana.com/api/dashboards/6328/images/4048/image)
+![](https://grafana.com/api/dashboards/6328/images/4078/image)
 
 You can get it from [the grafana website](https://grafana.com/dashboards/6328)
 or just import the dashboard `6328`.
