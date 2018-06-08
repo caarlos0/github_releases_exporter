@@ -14,7 +14,7 @@ Exports GitHub release metrics to the Prometheus format.
 ## Running
 
 ```console
-./github_releases_exporter -b ":9333"
+./github_releases_exporter
 ```
 
 Or with docker:
