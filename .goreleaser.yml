@@ -14,6 +14,8 @@ archive:
   name_template: '{{ .Binary }}_{{ .Os }}_{{ .Arch }}'
 dockers:
   - image: caarlos0/github_releases_exporter
+    extra_files:
+    - releases.yml
     tag_templates:
     - latest
     - "{{ .Tag }}"
