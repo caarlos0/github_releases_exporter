@@ -153,11 +153,12 @@ func collectOnce(ctx context.Context, client *github.Client, config *Config) err
 					return err
 				}
 				for _, asset := range assets {
+					// nolint: megacheck
 					downloadCount.WithLabelValues(
 						repository,
 						release.GetTagName(),
 						asset.GetName(),
-					).Set(float64(asset.GetDownloadCount())) // nolint:megacheck
+					).Set(float64(asset.GetDownloadCount()))
 				}
 				if resp.NextPage == 0 {
 					break
