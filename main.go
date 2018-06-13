@@ -157,7 +157,7 @@ func collectOnce(ctx context.Context, client *github.Client, config *Config) err
 						repository,
 						release.GetTagName(),
 						asset.GetName(),
-					).Set(float64(asset.GetDownloadCount()))
+					).Set(float64(asset.GetDownloadCount())) // nolint:megacheck
 				}
 				if resp.NextPage == 0 {
 					break
