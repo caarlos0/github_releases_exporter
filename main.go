@@ -44,17 +44,6 @@ func main() {
 		log.Debug("enabled debug mode")
 	}
 
-	var config Config
-	loadConfig(&config)
-	var configCh = make(chan os.Signal, 1)
-	signal.Notify(configCh, syscall.SIGHUP)
-	go func() {
-		for range configCh {
-			log.Info("reloading config...")
-			loadConfig(&config)
-		}
-	}()
-
 	var ctx = context.Background()
 	var client = github.NewClient(nil)
 	if *token != "" {
@@ -63,6 +52,21 @@ func main() {
 			oauth2.StaticTokenSource(&oauth2.Token{AccessToken: *token}),
 		))
 	}
+
+	var config Config
+	loadConfig(&config)
+	var configCh = make(chan os.Signal, 1)
+	signal.Notify(configCh, syscall.SIGHUP)
+	go func() {
+		for range configCh {
+			log.Info("reloading config...")
+			downloadCount.Reset()
+			loadConfig(&config)
+			if err := collectOnce(ctx, client, &config); err != nil {
+				log.Error("failed to collect:", err)
+			}
+		}
+	}()
 
 	go keepCollecting(ctx, client, &config)
 	prometheus.MustRegister(scrapeDuration)
