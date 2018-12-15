@@ -22,8 +22,8 @@ type releasesCollector struct {
 
 // NewReleasesCollector returns a releases collector
 func NewReleasesCollector(config *config.Config, client client.Client) prometheus.Collector {
-	const namespace = "github_release"
-	const subsystem = ""
+	const namespace = "github"
+	const subsystem = "release"
 	return &releasesCollector{
 		config: config,
 		client: client,
