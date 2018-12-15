@@ -1,2 +1,4 @@
 repositories:
 - caarlos0/github_releases_exporter
+- goreleaser/goreleaser
+- getantibody/antibody
