@@ -20,6 +20,7 @@ import (
 	yaml "gopkg.in/yaml.v1"
 )
 
+// nolint: gochecknoglobals
 var (
 	bind       = kingpin.Flag("bind", "addr to bind the server").Short('b').Default(":9333").String()
 	debug      = kingpin.Flag("debug", "show debug logs").Default("false").Bool()
@@ -94,6 +95,7 @@ func main() {
 
 const ns = "github_release"
 
+// nolint: gochecknoglobals
 var (
 	scrapeDuration = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: prometheus.BuildFQName(ns, "", "scrape_duration_seconds"),

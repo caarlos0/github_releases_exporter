@@ -1,19 +1,14 @@
 SOURCE_FILES?=./...
 TEST_PATTERN?=.
 TEST_OPTIONS?=
-OS=$(shell uname -s)
 
+export GO111MODULE := on
 export PATH := ./bin:$(PATH)
 
 # Install all the build and lint dependencies
 setup:
 	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh
-ifeq ($(OS), Darwin)
-	brew install dep
-else
-	curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-endif
-	dep ensure -vendor-only
+	go mod download
 .PHONY: setup
 
 test:
@@ -23,7 +18,7 @@ cover: test
 	go tool cover -html=coverage.out
 
 fmt:
-	find . -name '*.go' -not -wholename './vendor/*' | while read -r file; do gofmt -w -s "$$file"; goimports -w "$$file"; done
+	find . -name '*.go' | while read -r file; do gofmt -w -s "$$file"; goimports -w "$$file"; done
 
 lint:
 	golangci-lint run --enable-all ./...
