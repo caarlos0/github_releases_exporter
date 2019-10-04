@@ -20,7 +20,7 @@ Exports GitHub release metrics to the Prometheus format.
 Or with docker:
 
 ```console
-docker run -p 127.0.0.1:9333:9333 caarlos0/github_releases_exporter
+docker run -p 127.0.0.1:9222:9222 caarlos0/github_releases_exporter
 ```
 
 ## Configuration
@@ -38,7 +38,7 @@ services:
     command:
     - '--config.file=/etc/releases.yml'
     ports:
-    - 127.0.0.1:9333:9333
+    - 127.0.0.1:9222:9222
     env_file:
     - .env
 ```
@@ -56,7 +56,7 @@ On the prometheus settings, add the releases job like this:
 ```yaml
 - job_name: 'releases'
   static_configs:
-  - targets: ['releases:9333']
+  - targets: ['releases:9222']
 ```
 
 And you are done!

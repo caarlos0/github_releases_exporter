@@ -18,7 +18,7 @@ import (
 
 // nolint: gochecknoglobals
 var (
-	bind        = kingpin.Flag("bind", "addr to bind the server").Short('b').Default(":9333").String()
+	bind        = kingpin.Flag("bind", "addr to bind the server").Short('b').Default(":9222").String()
 	debug       = kingpin.Flag("debug", "show debug logs").Default("false").Bool()
 	token       = kingpin.Flag("github.token", "github token").Envar("GITHUB_TOKEN").String()
 	configFile  = kingpin.Flag("config.file", "config file").Default("releases.yml").ExistingFile()
