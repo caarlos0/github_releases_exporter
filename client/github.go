@@ -91,6 +91,7 @@ func (c githubClient) Assets(repository string, id int64) ([]Asset, error) {
 	}
 }
 
+// nolint: godox
 // TODO: maybe keep a global rate limiter?
 func rateLimited(err error) bool {
 	if err == nil {
