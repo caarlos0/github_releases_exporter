@@ -3,7 +3,7 @@ module github.com/caarlos0/github_releases_exporter
 require (
 	github.com/alecthomas/kingpin v2.2.6+incompatible
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
-	github.com/google/go-github v17.0.0+incompatible
+	github.com/google/go-github v28.1.1+incompatible
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
