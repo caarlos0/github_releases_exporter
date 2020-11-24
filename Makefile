@@ -21,7 +21,7 @@ fmt:
 	find . -name '*.go' | while read -r file; do gofmt -w -s "$$file"; goimports -w "$$file"; done
 
 lint:
-	golangci-lint run --enable-all ./...
+	golangci-lint run ./...
 
 ci: lint test
 
