@@ -1,24 +1,79 @@
 before:
   hooks:
-    - go mod download
+    - go mod tidy
+gomod:
+  proxy: true
 build:
   goarch:
     - amd64
+    - arm64
   env:
     - CGO_ENABLED=0
+nfpms:
+  - vendor: Becker Software LTDA
+    homepage: https://carlosbecker.com
+    maintainer: Carlos Becker <root@carlosbecker.dev>
+    description: Exports GitHub release metrics to the Prometheus format
+    formats:
+      - deb
+      - apk
+      - rpm
+    contents:
+      - src: releases.yml
+        dst: /etc/releases.yml
+        type: config
 brews:
 - tap:
     owner: caarlos0
     name: homebrew-tap
   folder: Formula
+  description: Exports GitHub release metrics to the Prometheus format
 checksum:
   name_template: '{{ .ProjectName }}_checksums.txt'
 archives:
 - name_template: '{{ .Binary }}_{{ .Os }}_{{ .Arch }}'
 dockers:
 - image_templates:
-  - 'caarlos0/github_releases_exporter:latest'
-  - 'caarlos0/github_releases_exporter:{{ .Tag }}'
-  - 'caarlos0/github_releases_exporter:v{{ .Major }}'
-  extra_files:
-  - releases.yml
+  - 'ghcr.io/caarlos0/github_releases_exporter:{{ .Tag }}-amd64'
+  - 'caarlos0/github_releases_exporter:{{ .Tag }}-amd64'
+  dockerfile: Dockerfile
+  use_buildx: true
+  build_flag_templates:
+  - "--pull"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.name={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - "--label=org.opencontainers.image.source=https://github.com/caarlos0/github_releases_exporter"
+  - "--platform=linux/amd64"
+- image_templates:
+  - 'ghcr.io/caarlos0/github_releases_exporter:{{ .Tag }}-arm64'
+  - 'caarlos0/github_releases_exporter:{{ .Tag }}-arm64'
+  dockerfile: Dockerfile
+  use_buildx: true
+  build_flag_templates:
+  - "--pull"
+  - "--label=org.opencontainers.image.created={{.Date}}"
+  - "--label=org.opencontainers.image.name={{.ProjectName}}"
+  - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+  - "--label=org.opencontainers.image.version={{.Version}}"
+  - "--label=org.opencontainers.image.source=https://github.com/caarlos0/github_releases_exporter"
+  - "--platform=linux/arm64"
+  goarch: arm64
+docker_manifests:
+- name_template: 'ghcr.io/caarlos0/github_releases_exporter:{{ .Tag }}'
+  image_templates:
+  - 'ghcr.io/caarlos0/github_releases_exporter:{{ .Tag }}-amd64'
+  - 'ghcr.io/caarlos0/github_releases_exporter:{{ .Tag }}-arm64'
+- name_template: 'ghcr.io/caarlos0/github_releases_exporter:latest'
+  image_templates:
+  - 'ghcr.io/caarlos0/github_releases_exporter:{{ .Tag }}-amd64'
+  - 'ghcr.io/caarlos0/github_releases_exporter:{{ .Tag }}-arm64'
+- name_template: 'caarlos0/github_releases_exporter:{{ .Tag }}'
+  image_templates:
+  - 'caarlos0/github_releases_exporter:{{ .Tag }}-amd64'
+  - 'caarlos0/github_releases_exporter:{{ .Tag }}-arm64'
+- name_template: 'caarlos0/github_releases_exporter:latest'
+  image_templates:
+  - 'caarlos0/github_releases_exporter:{{ .Tag }}-amd64'
+  - 'caarlos0/github_releases_exporter:{{ .Tag }}-arm64'
