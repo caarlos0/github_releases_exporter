@@ -115,9 +115,9 @@ func (c *releasesCollector) Collect(ch chan<- prometheus.Metric) {
 				c.release,
 				prometheus.CounterValue,
 				float64(release.UnixTime),
-				release.Name,
-				release.Tag,
 				repository,
+				release.Tag,
+				release.Name,
 			)
 		} else {
 			releases, err := c.client.Releases(repository)
