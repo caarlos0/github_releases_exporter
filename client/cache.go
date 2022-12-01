@@ -43,3 +43,15 @@ func (c cachedClient) Assets(repo string, id int64) ([]Asset, error) {
 	c.cache.Set(key, live, cache.DefaultExpiration)
 	return live, err
 }
+
+func (c cachedClient) GetLatestRelease(repo string) (*LatestRelease, error) {
+	cached, found := c.cache.Get(repo)
+	if found {
+		log.Debugf("getting releases for %s from cache", repo)
+		return cached.(*LatestRelease), nil
+	}
+	log.Debugf("getting releases for %s from API", repo)
+	live, err := c.client.GetLatestRelease(repo)
+	c.cache.Set(repo, live, cache.DefaultExpiration)
+	return live, err
+}

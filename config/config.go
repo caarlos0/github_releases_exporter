@@ -11,9 +11,9 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
-// Config struct representing the config file.
 type Config struct {
-	Repositories []string `yaml:"repositories"`
+	OnlyNewReleaseInfo bool     `yaml:"only_new_release_info"`
+	Repositories       []string `yaml:"repositories"`
 }
 
 func doLoad(file string, config *Config) error {
