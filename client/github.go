@@ -32,6 +32,28 @@ type githubClient struct {
 	max    int
 }
 
+func (c githubClient) GetLatestRelease(repo string) (*LatestRelease, error) {
+	owner, repo, err := splitRepo(repo)
+	if err != nil {
+		return nil, err
+	}
+	for {
+		release, _, err := c.client.Repositories.GetLatestRelease(c.ctx, owner, repo)
+		if rateLimited(err) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		return &LatestRelease{
+			Tag:      release.GetTagName(),
+			Name:     release.GetName(),
+			UnixTime: release.GetCreatedAt().Unix(),
+		}, nil
+	}
+}
+
 func (c githubClient) Releases(repository string) ([]Release, error) {
 	var allReleases []Release
 	owner, repo, err := splitRepo(repository)
