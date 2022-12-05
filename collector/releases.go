@@ -49,48 +49,45 @@ func NewReleasesCollector(config *config.Config, client client.Client) prometheu
 				nil,
 			),
 		}
-	} else {
-		return &releasesCollector{
-			config: config,
-			client: client,
-			release: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsystem, "latest_info"),
-				"Latest release info of the repo",
-				[]string{"repository", "tag", "name"},
-				nil,
-			),
-			up: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsystem, "up"),
-				"Exporter is being able to talk with GitHub API",
-				nil,
-				nil,
-			),
-			downloads: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsystem, "asset_download_count"),
-				"Download count of each asset of a github release",
-				[]string{"repository", "tag", "name", "extension"},
-				nil,
-			),
-			scrapeDuration: prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, subsystem, "scrape_duration_seconds"),
-				"Returns how long the probe took to complete in seconds",
-				nil,
-				nil,
-			),
-		}
+	}
+	return &releasesCollector{
+		config: config,
+		client: client,
+		release: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, subsystem, "latest_info"),
+			"Latest release info of the repo",
+			[]string{"repository", "tag", "name"},
+			nil,
+		),
+		up: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, subsystem, "up"),
+			"Exporter is being able to talk with GitHub API",
+			nil,
+			nil,
+		),
+		downloads: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, subsystem, "asset_download_count"),
+			"Download count of each asset of a github release",
+			[]string{"repository", "tag", "name", "extension"},
+			nil,
+		),
+		scrapeDuration: prometheus.NewDesc(
+			prometheus.BuildFQName(namespace, subsystem, "scrape_duration_seconds"),
+			"Returns how long the probe took to complete in seconds",
+			nil,
+			nil,
+		),
 	}
 }
 
 // Describe all metrics
 func (c *releasesCollector) Describe(ch chan<- *prometheus.Desc) {
+	ch <- c.up
+	ch <- c.scrapeDuration
 	if c.config.OnlyNewReleaseInfo {
-		ch <- c.up
 		ch <- c.release
-		ch <- c.scrapeDuration
 	} else {
-		ch <- c.up
 		ch <- c.downloads
-		ch <- c.scrapeDuration
 	}
 }
 
