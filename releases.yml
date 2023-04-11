@@ -1,3 +1,4 @@
+only_new_release_info: true
 repositories:
 - caarlos0/github_releases_exporter
 - goreleaser/goreleaser
