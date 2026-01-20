@@ -6,7 +6,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.26.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.34.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -32,4 +32,4 @@ require (
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
 
-go 1.23.0
+go 1.24.0
